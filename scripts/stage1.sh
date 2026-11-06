@@ -56,7 +56,7 @@ note "device=$DEVICE"
 run_flow() { # label flowfile extra-args...
   local label=$1 flow=$2; shift 2
   local start=$SECONDS
-  tapflow flow run "$flow" --device "$DEVICE" --build "$BUILD_ID" \
+  perl -e 'alarm 300; exec @ARGV' tapflow flow run "$flow" --device "$DEVICE" --build "$BUILD_ID" \
     --junit "$R/runs/$label.xml" --artifacts "$R/runs/$label-artifacts" "$@" > "$R/runs/$label.log" 2>&1
   local rc=$?
   note "$label exit=$rc in $((SECONDS-start))s"
@@ -66,8 +66,19 @@ run_flow() { # label flowfile extra-args...
   [ -n "$box" ] && cp "$box/Documents/events.log" "$R/runs/$label-events.log" 2>/dev/null
 }
 
-# Cold first run measures boot; the repeats measure flakiness.
-for i in 1 2 3 4 5 6 7 8; do run_flow "core-$i" flows/core.yaml; done
+# Boot apart from the flows, so a slow boot on this small VM is not read as a flow hang.
+t0=$SECONDS
+xcrun simctl boot "$DEVICE" >> "$R/build.log" 2>&1
+perl -e 'alarm 600; exec @ARGV' xcrun simctl bootstatus "$DEVICE" > "$R/bootstatus.txt" 2>&1
+note "simulator boot exit=$? in $((SECONDS-t0))s"
+xcrun simctl io booted screenshot "$R/runs/after-boot.png" > /dev/null 2>&1
+
+# The repeats measure flakiness; exit 142 is the 300s limit above, and two in a row means it is stuck.
+for i in 1 2 3 4 5 6 7 8; do
+  run_flow "core-$i" flows/core.yaml
+  grep -q "exit=142" <(tail -2 "$R/summary.txt" | head -1) && tail -1 "$R/summary.txt" | grep -q "exit=142" && { note "stopping repeats: two hangs in a row"; break; }
+done
+tapflow status > "$R/status-mid.txt" 2>&1
 run_flow toggle flows/toggle.yaml
 run_flow scroll flows/scroll.yaml
 run_flow overlap flows/overlap.yaml # informational: row sitting under the bottom bar
