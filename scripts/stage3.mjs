@@ -40,9 +40,10 @@ const started = Date.now()
 await page.goto(`http://localhost:4000/app-center/build?${new URLSearchParams({ id: '1', session: device.sessionId, device: device.id })}`)
 await sleep(5000)
 await page.screenshot({ path: `${OUT}/01-page-5s.png` })
+await page.getByRole('button', { name: 'Start again' }).click({ timeout: 30000 }).catch((e) => log(`no restart button: ${e.message.slice(0, 80)}`))
 
 let canvas = null
-for (let i = 0; i < 60 && !canvas; i++) {
+for (let i = 0; i < 200 && !canvas; i++) {
   for (const c of await page.locator('canvas').all()) {
     const b = await c.boundingBox().catch(() => null)
     if (b && b.width > 100 && b.height > 200) { canvas = b; break }
@@ -53,6 +54,10 @@ log(`canvas: ${JSON.stringify(canvas)} after ${Date.now() - started}ms; frames s
 await page.screenshot({ path: `${OUT}/02-page-canvas.png` })
 log(`first frame after ${frames.length ? frames[0].t - started : 'NONE'}ms`)
 if (!canvas) { await browser.close(); process.exit(0) }
+for (let i = 0; i < 100 && !frames.length; i++) await sleep(3000)
+log(`first frame after ${frames.length ? frames[0].t - started : 'NONE'}ms`)
+await sleep(30000) // install and launch finish behind the first frame
+await page.screenshot({ path: `${OUT}/02b-page-settled.png` })
 
 const rate = (from, to) => {
   const w = frames.filter((f) => f.t >= from && f.t < to)
