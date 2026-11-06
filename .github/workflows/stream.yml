@@ -1,0 +1,31 @@
+name: tapflow-stream
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  stream:
+    runs-on: macos-26
+    timeout-minutes: 40
+    env:
+      ADMIN_PW: ${{ secrets.TAPFLOW_ADMIN_PW }}
+      TAPFLOW_RESOURCE_THRESHOLD_PERCENT: "100"
+      TAPFLOW_STREAM_METRICS: "1"
+      SKIP_FLOWS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up tapflow and boot
+        run: bash scripts/stage1.sh
+      - name: Chrome stream test
+        run: |
+          OUT="$PWD/results/stream"; export OUT
+          mkdir -p "$RUNNER_TEMP/tools" && cp scripts/stage3.mjs "$RUNNER_TEMP/tools/"
+          cd "$RUNNER_TEMP/tools" && npm init -y >/dev/null && npm i --silent playwright-core ws
+          perl -e 'alarm 1200; exec @ARGV' node stage3.mjs
+      - name: Resources
+        if: always()
+        run: top -l 1 -n 0 | grep -E "CPU usage|PhysMem" | tee results/resources-end.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stream
+          path: results

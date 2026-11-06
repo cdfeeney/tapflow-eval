@@ -75,6 +75,12 @@ perl -e 'alarm 600; exec @ARGV' xcrun simctl bootstatus "$DEVICE" > "$R/bootstat
 note "simulator boot exit=$? in $((SECONDS-t0))s"
 xcrun simctl io booted screenshot "$R/runs/after-boot.png" > /dev/null 2>&1
 
+if [ -n "$SKIP_FLOWS" ]; then
+  xcrun simctl install "$DEVICE" build/Probe.app; note "direct install exit=$?"
+  xcrun simctl launch "$DEVICE" dev.probe.tapflow > /dev/null; note "direct launch exit=$?"
+  exit 0
+fi
+
 # The repeats measure flakiness; exit 142 is the 300s limit above, and two in a row means it is stuck.
 for i in 1 2 3 4 5 6; do
   run_flow "core-$i" flows/core.yaml
