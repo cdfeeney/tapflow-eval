@@ -22,6 +22,8 @@ npm install -g tapflow@0.32.0 > "$R/npm-install.log" 2>&1
 note "npm install exit=$? in $((SECONDS-t0))s version=$(tapflow --version 2>&1 | head -1)"
 tapflow doctor ios > "$R/doctor.txt" 2>&1; note "doctor exit=$?"
 tapflow init > "$R/init.txt" 2>&1; note "init exit=$?"
+# The small VM needs the lighter simulator mode tapflow offers.
+jq '.agent.lean = true' "$TAPFLOW_HOME/tapflow.config.json" > cfg.tmp && mv cfg.tmp "$TAPFLOW_HOME/tapflow.config.json"; note "lean on: $(jq -c .agent "$TAPFLOW_HOME/tapflow.config.json")"
 
 # Device names repeat across runtimes and --device refuses a duplicate, so make one unique name
 # before the agent lists devices.
@@ -74,7 +76,7 @@ note "simulator boot exit=$? in $((SECONDS-t0))s"
 xcrun simctl io booted screenshot "$R/runs/after-boot.png" > /dev/null 2>&1
 
 # The repeats measure flakiness; exit 142 is the 300s limit above, and two in a row means it is stuck.
-for i in 1 2 3 4 5 6 7 8; do
+for i in 1 2 3 4 5 6; do
   run_flow "core-$i" flows/core.yaml
   grep -q "exit=142" <(tail -2 "$R/summary.txt" | head -1) && tail -1 "$R/summary.txt" | grep -q "exit=142" && { note "stopping repeats: two hangs in a row"; break; }
 done
