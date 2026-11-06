@@ -26,8 +26,14 @@ jobs:
         with:
           name: stage1
           path: results
+      - name: Stage 2 - open tunnel
+        run: bash scripts/stage2.sh start
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tunnel
+          path: results/tunnel-url.txt
       - name: Stage 2 - live tunnel
-        run: bash scripts/stage2.sh
+        run: bash scripts/stage2.sh hold
       - uses: actions/upload-artifact@v4
         if: always()
         with:

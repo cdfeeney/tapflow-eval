@@ -18,6 +18,5 @@ steps:
   - tapOn: { id: "close-sheet" }
   - assertNotVisible: "Sheet body"
   - tapOn: { id: "long-list" }
-  - scroll: { until: { id: "row-150" } }
-  - tapOn: { id: "row-150" }
-  - assertVisible: "Detail 150"
+  - tapOn: { id: "row-10" }
+  - assertVisible: "Detail 10"

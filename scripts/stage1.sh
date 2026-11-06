@@ -23,6 +23,13 @@ note "npm install exit=$? in $((SECONDS-t0))s version=$(tapflow --version 2>&1 |
 tapflow doctor ios > "$R/doctor.txt" 2>&1; note "doctor exit=$?"
 tapflow init > "$R/init.txt" 2>&1; note "init exit=$?"
 
+# Device names repeat across runtimes and --device refuses a duplicate, so make one unique name
+# before the agent lists devices.
+DEVICE=tapflow-probe
+RUNTIME=$(xcrun simctl list runtimes -j | jq -r '[.runtimes[] | select(.isAvailable and (.identifier|test("iOS")))][-1].identifier')
+xcrun simctl create "$DEVICE" "iPhone 17" "$RUNTIME" >> "$R/build.log" 2>&1
+note "created $DEVICE on $RUNTIME exit=$?"
+
 t0=$SECONDS
 nohup tapflow start > "$R/tapflow-start.log" 2>&1 &
 for _ in $(seq 1 90); do curl -sf localhost:4000/api/v1/auth/status > "$R/auth-status.json" && break; sleep 2; done
@@ -39,10 +46,12 @@ BUILD_ID=$(jq -r .id "$R/upload.json")
 note "upload build id=$BUILD_ID: $(jq -c '{bundle_id,platform,error}' "$R/upload.json")"
 echo "BUILD_ID=$BUILD_ID" > results/ids.env
 
-DEVICE=$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key|test("iOS")) | .value[] | select(.name|test("^iPhone 1[67]$"))][-1].name')
-echo "DEVICE='$DEVICE'" >> results/ids.env
-note "device=$DEVICE"
+TOKEN=$(curl -s -b cookies -X POST localhost:4000/api/v1/tokens -H 'Content-Type: application/json' \
+  -d '{"name":"eval","scope":"view,builds:write"}' | jq -r .token)
+export TAPFLOW_TOKEN="$TOKEN"
+note "token created: $([ "${TOKEN#tflw_pat_}" != "$TOKEN" ] && echo yes || echo NO)"
 tapflow devices > "$R/devices.txt" 2>&1; tapflow status > "$R/status.txt" 2>&1
+note "device=$DEVICE"
 
 run_flow() { # label flowfile extra-args...
   local label=$1 flow=$2; shift 2
@@ -60,6 +69,8 @@ run_flow() { # label flowfile extra-args...
 # Cold first run measures boot; the repeats measure flakiness.
 for i in 1 2 3 4 5 6 7 8; do run_flow "core-$i" flows/core.yaml; done
 run_flow toggle flows/toggle.yaml
+run_flow scroll flows/scroll.yaml
+run_flow overlap flows/overlap.yaml # informational: row sitting under the bottom bar
 run_flow must-fail flows/must-fail.yaml # correct result is exit 1: proves failures are not hidden
 
 curl -s -b cookies localhost:4000/api/v1/runs > "$R/runs.json"

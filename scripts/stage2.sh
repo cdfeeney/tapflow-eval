@@ -8,6 +8,8 @@ for _ in $(seq 1 30); do
   [ -n "$URL" ] && break; sleep 2
 done
 echo "TUNNEL_URL=$URL"
+echo "$URL" > "$R/tunnel-url.txt"
+[ "$1" = "start" ] && exit 0
 end=$((SECONDS + HOLD_MINUTES * 60))
 while [ $SECONDS -lt $end ]; do
   top -l 1 -n 0 | grep -E "CPU usage|PhysMem" | tr '\n' ' ' >> "$R/resources.txt"; echo >> "$R/resources.txt"

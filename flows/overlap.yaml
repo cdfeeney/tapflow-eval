@@ -1,0 +1,8 @@
+name: overlap
+appId: dev.probe.tapflow
+steps:
+  - clearState
+  - launchApp
+  - tapOn: { id: "long-list" }
+  - tapOn: { id: "row-14" }
+  - assertVisible: "Detail 14"

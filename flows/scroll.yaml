@@ -1,0 +1,10 @@
+name: scroll
+appId: dev.probe.tapflow
+steps:
+  - clearState
+  - launchApp
+  - tapOn: { id: "long-list" }
+  - assertVisible: { id: "row-1" }
+  - scroll: down
+  - scroll: down
+  - assertNotVisible: { id: "row-1" }
