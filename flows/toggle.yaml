@@ -1,0 +1,8 @@
+name: toggle
+appId: dev.probe.tapflow
+steps:
+  - clearState
+  - launchApp
+  - assertVisible: "reminders off"
+  - tapOn: { id: "reminders" }
+  - assertVisible: "reminders on"

@@ -1,0 +1,35 @@
+name: tapflow-eval
+on:
+  workflow_dispatch:
+    inputs:
+      hold_minutes:
+        description: Minutes to keep the live tunnel open after the flows finish
+        default: "25"
+permissions:
+  contents: read
+jobs:
+  eval:
+    runs-on: macos-26
+    timeout-minutes: 75
+    env:
+      ADMIN_PW: ${{ secrets.TAPFLOW_ADMIN_PW }}
+      HOLD_MINUTES: ${{ inputs.hold_minutes }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage 1 - install and run flows
+        run: bash scripts/stage1.sh
+      - name: Print summary
+        if: always()
+        run: cat results/summary.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage1
+          path: results
+      - name: Stage 2 - live tunnel
+        run: bash scripts/stage2.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage2
+          path: results

@@ -1,0 +1,5 @@
+name: must-fail
+appId: dev.probe.tapflow
+steps:
+  - launchApp
+  - assertVisible: { label: "saves: 999", timeout: 5 }

@@ -1,0 +1,23 @@
+name: core
+appId: dev.probe.tapflow
+steps:
+  - clearState
+  - launchApp
+  - assertVisible: "saves: 0"
+  - tapOn: { id: "form-save" }
+  - assertVisible: "saves: 1"
+  - tapOn: { id: "form-save" }
+  - assertVisible: "saves: 2"
+  - tapOn: { id: "weight" }
+  - inputText: "225"
+  - assertVisible: "typed: 225"
+  - tapOn: { id: "load" }
+  - assertVisible: { label: "Loaded", timeout: 15 }
+  - tapOn: { id: "open-sheet" }
+  - assertVisible: "Sheet body"
+  - tapOn: { id: "close-sheet" }
+  - assertNotVisible: "Sheet body"
+  - tapOn: { id: "long-list" }
+  - scroll: { until: { id: "row-150" } }
+  - tapOn: { id: "row-150" }
+  - assertVisible: "Detail 150"
